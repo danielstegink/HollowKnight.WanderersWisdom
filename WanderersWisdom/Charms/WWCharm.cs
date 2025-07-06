@@ -28,11 +28,6 @@ namespace WanderersWisdom.Charms
         private float cDashModifier = 1;
 
         /// <summary>
-        /// 
-        /// </summary>
-        private float monarchWingsModifier = 1;
-
-        /// <summary>
         /// Stores the base damage for spore clouds
         /// </summary>
         private float sporeDamage = -1f;
@@ -97,11 +92,11 @@ namespace WanderersWisdom.Charms
         }
 
         #region Crystal Heart
-            /// <summary>
-            /// Crystal Heart deals increased damage when Swift Focus and Deep Focus are equipped
-            /// </summary>
-            /// <param name="orig"></param>
-            /// <param name="self"></param>
+        /// <summary>
+        /// Crystal Heart deals increased damage when Swift Focus and Deep Focus are equipped
+        /// </summary>
+        /// <param name="orig"></param>
+        /// <param name="self"></param>
         private void CrystalHeart(On.HeroController.orig_CharmUpdate orig, HeroController self)
         {
             orig(self);
@@ -255,6 +250,10 @@ namespace WanderersWisdom.Charms
             orig(self);
         }
 
+        /// <summary>
+        /// Parallel thread for handling Isma's Cloud
+        /// </summary>
+        /// <returns></returns>
         private IEnumerator TriggerIsmasCloud()
         {
             // Find the dung cloud prefab

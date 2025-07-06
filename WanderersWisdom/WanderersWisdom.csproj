@@ -339,6 +339,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\ReadMe.md" Link="ReadMe.md" />
-    <None Include=".gitignore" />
+    <None Include="..\SPOILERS.md" Link="SPOILERS.md" />
   </ItemGroup>
 </Project>

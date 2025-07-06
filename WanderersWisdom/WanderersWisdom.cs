@@ -19,7 +19,7 @@ namespace WanderersWisdom
 {
     public class WanderersWisdom : Mod, IMod, ILocalSettings<LocalSaveData>
     {
-        public override string GetVersion() => "1.0.0.0";
+        public override string GetVersion() => "1.0.0.1";
 
         #region Save Settings
         /// <summary>
