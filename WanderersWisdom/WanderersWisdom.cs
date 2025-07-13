@@ -212,32 +212,37 @@ namespace WanderersWisdom
         /// <exception cref="NotImplementedException"></exception>
         private void SceneChanged(Scene arg0, Scene arg1)
         {
-            if (PlayerData.instance.corniferAtHome &&
-                !localSaveData.charmsPlaced)
+            if (PlayerData.instance.corniferAtHome)
             {
                 // Finder stores all locations in its local files, including Iselda's Shop
                 ShopLocation iseldaShop = (ShopLocation)Finder.GetLocation("Iselda");
                 ShopPlacement shopPlacement = (ShopPlacement)iseldaShop.Wrap();
 
+                // Make sure to specify default items so we don't break Iselda's store
+                shopPlacement.defaultShopItems = DefaultShopItems.IseldaMaps |
+                                                    DefaultShopItems.IseldaCharms | 
+                                                    DefaultShopItems.IseldaMapMarkers | 
+                                                    DefaultShopItems.IseldaMapPins |
+                                                    DefaultShopItems.IseldaMaps |
+                                                    DefaultShopItems.IseldaQuill;
+
                 foreach (Charm charm in charms)
                 {
+                    // Skip if charm has already been bought
+                    if (localSaveData.charmFound[charm.InternalName()])
+                    {
+                        continue;
+                    }
+
                     // Get charm as an item from Finder
                     AbstractItem charmItem = Finder.GetItem(charm.InternalName());
 
-                    // Wanderer's Wisdom will cost 500
-                    int geoCost = 500;
-                    if (charm.InternalName().Contains("Guile")) // Wanderer's Guile will cost 2000
-                    {
-                        geoCost = 2000;
-                    }
-
                     // Add item to shop
-                    shopPlacement.AddItemWithCost(charmItem, geoCost);
+                    shopPlacement.AddItemWithCost(charmItem, charm.Cost);
                 }
 
                 // Add placement back to ItemChanger
-                ItemChangerMod.AddPlacements(new List<AbstractPlacement> { shopPlacement }, PlacementConflictResolution.Ignore);
-                localSaveData.charmsPlaced = true;
+                ItemChangerMod.AddPlacements(new List<AbstractPlacement> { shopPlacement }, PlacementConflictResolution.Replace);
             }
         }
 

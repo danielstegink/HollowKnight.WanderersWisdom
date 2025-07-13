@@ -19,6 +19,8 @@ namespace WanderersWisdom
         public override string Description => "This token contains the guile of one who has explored the farthest reaches of the world.\n\n" +
                                                 "Enables the bearer to survive in harsh conditions.";
 
+        public override int Cost => 2000;
+
         public override AbstractLocation Location()
         {
             throw new NotImplementedException();

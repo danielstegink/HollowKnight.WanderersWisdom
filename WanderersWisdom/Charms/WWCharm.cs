@@ -17,6 +17,8 @@ namespace WanderersWisdom.Charms
         public override string Description => "This token contains the wisdom of one who has explored the farthest reaches of the world.\n\n" +
                                                 "Gives the bearer new insight into their abilities.";
 
+        public override int Cost => 500;
+
         public override AbstractLocation Location()
         {
             throw new NotImplementedException();

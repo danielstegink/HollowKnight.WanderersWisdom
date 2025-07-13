@@ -26,6 +26,11 @@ namespace WanderersWisdom.Helpers
         public int Num { get; set; }
 
         /// <summary>
+        /// Cost of the charm at the store
+        /// </summary>
+        public abstract int Cost { get; }
+
+        /// <summary>
         /// Location where the charm should be placed on the map
         /// </summary>
         /// <returns></returns>
