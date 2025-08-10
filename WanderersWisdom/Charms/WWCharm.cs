@@ -1,5 +1,9 @@
-﻿using ItemChanger;
+﻿using DanielSteginkUtils.Helpers.Charms.Shroom;
+using DanielSteginkUtils.Helpers.Charms.Templates;
+using DanielSteginkUtils.Utilities;
+using ItemChanger;
 using Modding;
+using SFCore;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -10,51 +14,107 @@ namespace WanderersWisdom.Charms
     /// <summary>
     /// Wanderer's Wisdom creates new synergies between charms and abilities (ie. Mothwing Cloak, Crystal Heart, etc)
     /// </summary>
-    public class WWCharm : Charm
+    public class WWCharm : TemplateCharm
     {
-        public override string Name => "Wanderer's Wisdom";
+        public WWCharm() : base(WanderersWisdom.Instance.Name, false) 
+        {
+            ModHooks.CharmUpdateHook += OnCharmUpdate;
+        }
 
-        public override string Description => "This token contains the wisdom of one who has explored the farthest reaches of the world.\n\n" +
-                                                "Gives the bearer new insight into their abilities.";
+        protected override string GetName()
+        {
+            return "Wanderer's Wisdom";
+        }
 
-        public override int Cost => 500;
+        protected override string GetDescription()
+        {
+            return "This token contains the wisdom of one who has explored the farthest reaches of the world.\n\n" +
+                    "Gives the bearer new insight into their abilities.";
+        }
 
-        public override AbstractLocation Location()
+        protected override int GetCharmCost()
+        {
+            return 1;
+        }
+
+        protected override Sprite GetSpriteInternal()
+        {
+            return SpriteHelper.Get("WanderersWisdom");
+        }
+
+        public int geoCost => 500;
+
+        public override AbstractLocation ItemChangerLocation()
         {
             throw new NotImplementedException();
         }
 
-        /// <summary>
-        /// Stores the damage modifier applied to CDash
-        /// </summary>
-        private float cDashModifier = 1;
+        #region Settings
+        public override void OnLoadLocal()
+        {
+            EasyCharmState charmSettings = new EasyCharmState()
+            {
+                IsEquipped = SharedData.localSaveData.charmEquipped[GetItemChangerId()],
+                GotCharm = SharedData.localSaveData.charmFound[GetItemChangerId()],
+                IsNew = false,
+            };
 
-        /// <summary>
-        /// Stores the base damage for spore clouds
-        /// </summary>
-        private float sporeDamage = -1f;
+            RestoreCharmState(charmSettings);
+        }
 
-        /// <summary>
-        /// Tracks whether Isma's Clodu has been triggered
-        /// </summary>
-        private bool ismasCloudActive = false;
+        public override void OnSaveLocal()
+        {
+            EasyCharmState charmSettings = GetCharmState();
+            SharedData.localSaveData.charmEquipped[GetItemChangerId()] = IsEquipped;
+            SharedData.localSaveData.charmFound[GetItemChangerId()] = GotCharm;
+        }
+        #endregion
 
-        public WWCharm() { }
-
-        public override void ApplyEffects()
+        #region Activation
+        public override void Equip()
         {
             // Mothwing Cloak already synergizes with Dashmaster, Sprintmaster and Sharp Shadow
 
             On.HealthManager.TakeDamage += MantisClaw;
 
-            On.HeroController.CharmUpdate += CrystalHeart;
+            On.HealthManager.TakeDamage += CrystalHeart;
 
             On.HeroController.Move += MonarchWings;
 
-            ModHooks.ObjectPoolSpawnHook += IsmasSpore;
+            ResetSporeHelper();
+            sporeHelper.Start();
+
             On.HeroController.Update += IsmasCloud;
 
             // Dream Nail already synergizes with Dreamwielder and (indirectly) Dream Shield
+        }
+
+        public override void Unequip()
+        {
+            On.HealthManager.TakeDamage -= MantisClaw;
+
+            On.HealthManager.TakeDamage -= CrystalHeart;
+
+            On.HeroController.Move -= MonarchWings;
+
+            ResetSporeHelper();
+            
+            On.HeroController.Update -= IsmasCloud;
+        }
+
+        /// <summary>
+        /// When charms are equipped/unequipped, the various helpers also need to be reset
+        /// </summary>
+        /// <param name="data"></param>
+        /// <param name="controller"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void OnCharmUpdate(PlayerData data, HeroController controller)
+        {
+            ResetSporeHelper();
+            if (IsEquipped)
+            {
+                sporeHelper.Start();
+            }
         }
 
         /// <summary>
@@ -66,28 +126,31 @@ namespace WanderersWisdom.Charms
         /// <exception cref="NotImplementedException"></exception>
         private void MantisClaw(On.HealthManager.orig_TakeDamage orig, HealthManager self, HitInstance hitInstance)
         {
-            bool isNailAttack = SharedData.nailAttackNames.Contains(hitInstance.Source.name) ||
-                                SharedData.nailArtNames.Contains(hitInstance.Source.name) ||
-                                hitInstance.Source.name.Contains("Grubberfly");
-            //SharedData.Log($"Attack detected: {hitInstance.Source.name}");
-
-            if (IsEquipped() &&
-                PlayerData.instance.hasWalljump &&
-                isNailAttack)
+            if (PlayerData.instance.GetBool("hasWalljump") &&
+                Logic.IsNailAttack(hitInstance))
             {
+                // The player can have up to 11 charm notches w/o mods. Since we use 1 for this charm, that leaves 10 more
+                
+                // We always want to promote different charm loadouts, so for balance we will say that this charm can give
+                // 1 notch of utility if the player has 5 notches worth of relevant charms equipped
+
+                // In the case of Mantis Claw, 1 notch of nail damage is worth 10% per my Utils folder, or
+                // 2 damage if the nail is fully upgraded
+
+                // LN and MOP together equal 2 damage, and their costs are almost equal, so having both give 1 point of damage is balanced
+
                 int bonusDamage = 0;
-                if (PlayerData.instance.equippedCharm_18)
+                if (PlayerData.instance.GetBool("equippedCharm_18"))
                 {
                     bonusDamage++;
                 }
 
-                if (PlayerData.instance.equippedCharm_13)
+                if (PlayerData.instance.GetBool("equippedCharm_13"))
                 {
                     bonusDamage++;
                 }
 
                 hitInstance.DamageDealt += bonusDamage;
-                //SharedData.Log($"Nail damage increased by {bonusDamage}");
             }
 
             orig(self, hitInstance);
@@ -99,69 +162,45 @@ namespace WanderersWisdom.Charms
         /// </summary>
         /// <param name="orig"></param>
         /// <param name="self"></param>
-        private void CrystalHeart(On.HeroController.orig_CharmUpdate orig, HeroController self)
+        /// <param name="hitInstance"></param>
+        private void CrystalHeart(On.HealthManager.orig_TakeDamage orig, HealthManager self, HitInstance hitInstance)
         {
-            orig(self);
-
-            if (PlayerData.instance.hasSuperDash &&
-                IsEquipped())
+            if (hitInstance.Source.name.Equals("SuperDash Damage"))
             {
-                float modifier = GetCDModifier();
-                Transform superDash = HeroController.instance.transform.Find("SuperDash Damage");
-                ApplyCDashBuff(superDash, modifier);
-
-                superDash = HeroController.instance.transform.Find("Effects/SD Burst");
-                ApplyCDashBuff(superDash, modifier);
-
-                cDashModifier = modifier;
+                int bonusDamage = (int)GetCDBonus();
+                hitInstance.DamageDealt += bonusDamage;
+                //WanderersWisdom.Instance.Log($"CDash damage increased by {bonusDamage}");
             }
+
+            orig(self, hitInstance);
         }
 
         /// <summary>
-        /// Gets the damage modifier for CDash
+        /// Gets the damage bonus for CDash
         /// </summary>
         /// <returns></returns>
-        private float GetCDModifier()
+        private float GetCDBonus()
         {
-            float modifier = 1;
+            float bonusDamage = 0f;
 
-            // Quick Focus and Deep Focus both boost the damage by 50% (additively)
-            if (PlayerData.instance.equippedCharm_7)
+            // Per my logic in Mantis Claw, 5 notches of equipped charms will be worth 1 notch of increased damage
+            // In the case of CDash, we can treat the bonus as an increases in dash damage
+            float bonusDamagePerNotch = NotchCosts.DashDamagePerNotch() / 5;
+            //WanderersWisdom.Instance.Log($"CDash bonus damage per notch: {bonusDamagePerNotch}");
+
+            // Quick Focus costs 3 notches
+            if (PlayerData.instance.GetBool("equippedCharm_7"))
             {
-                modifier += 0.5f;
+                bonusDamage += 3 * bonusDamagePerNotch;
             }
 
-            if (PlayerData.instance.equippedCharm_34)
+            // Deep Focus is worth 4 notches
+            if (PlayerData.instance.GetBool("equippedCharm_34"))
             {
-                modifier += 0.5f;
+                bonusDamage += 4 * bonusDamagePerNotch;
             }
 
-            return modifier;
-        }
-
-        /// <summary>
-        /// Reviews the super dash and applies the damage buff as needed
-        /// </summary>
-        /// <param name="superDash"></param>
-        /// <param name="modifier"></param>
-        private void ApplyCDashBuff(Transform superDash, float modifier)
-        {
-            if (superDash != null)
-            {
-                // Get the bonus damage of the CDash
-                GameObject dashObject = superDash.gameObject;
-                PlayMakerFSM fsm = dashObject.LocateMyFSM("damages_enemy");
-
-                // Adjust the damage
-                if (modifier != cDashModifier)
-                {
-                    int baseDamage = fsm.FsmVariables.GetFsmInt("damageDealt").Value;
-                    int oldBaseDamage = (int)(baseDamage / cDashModifier);
-                    int newDamage = (int)(oldBaseDamage * modifier);
-                    fsm.FsmVariables.GetFsmInt("damageDealt").Value = newDamage;
-                    //SharedData.Log($"{superDash.name} damage changed from {baseDamage} to {newDamage}");
-                }
-            }
+            return bonusDamage;
         }
         #endregion
 
@@ -175,14 +214,12 @@ namespace WanderersWisdom.Charms
         /// <param name="move_direction"></param>
         private void MonarchWings(On.HeroController.orig_Move orig, HeroController self, float move_direction)
         {
-            if (IsEquipped() &&
-                !self.cState.onGround &&
+            if (!self.cState.onGround &&
                 !self.cState.swimming &&
-                PlayerData.instance.hasDoubleJump)
+                PlayerData.instance.GetBool("hasDoubleJump"))
             {
-                float newModifier = GetMonarchWingsModifier();
+                float newModifier = GetMWModifier();
                 float newSpeed = move_direction * newModifier;
-                //SharedData.Log($"Speed changed from {move_direction} to {newSpeed}");
                 move_direction = newSpeed;
             }
 
@@ -190,20 +227,28 @@ namespace WanderersWisdom.Charms
         }
 
         /// <summary>
-        /// Gathering Swarm and Sprintmaster both increase airborne movement by 20%
+        /// Gets the speed modifier for Monarch Wings
         /// </summary>
         /// <returns></returns>
-        private float GetMonarchWingsModifier()
+        private float GetMWModifier()
         {
             float modifier = 1f;
-            if (PlayerData.instance.equippedCharm_1)
+
+            // Per above, 5 notches is worth 1 notch of utility
+            // Per Sprintmaster, 1 notch is worth a 20% boost in speed
+            // However, this only affects airborne velocity
+            // Going off vibes, I'd say a boost in airborne speed would be worth 40%
+            float speedPerNotch = 0.4f / 5;
+
+            // Dashmaster and Gatherwing Swarm are both worth 1 notch
+            if (PlayerData.instance.GetBool("equippedCharm_1"))
             {
-                modifier += 0.2f;
+                modifier += speedPerNotch;
             }
 
-            if (PlayerData.instance.equippedCharm_37)
+            if (PlayerData.instance.GetBool("equippedCharm_37"))
             {
-                modifier += 0.2f;
+                modifier += speedPerNotch;
             }
 
             return modifier;
@@ -214,24 +259,43 @@ namespace WanderersWisdom.Charms
         /// <summary>
         /// Isma's Tear increases damage dealt by Spore Shroom
         /// </summary>
-        /// <param name="gameObject"></param>
-        /// <returns></returns>
-        private GameObject IsmasSpore(GameObject gameObject)
-        {
-            if (gameObject.name.Equals("Knight Spore Cloud(Clone)") &&
-                PlayerData.instance.equippedCharm_17 &&
-                IsEquipped())
-            {
-                if (sporeDamage < 0)
-                {
-                    sporeDamage = gameObject.GetComponent<DamageEffectTicker>().damageInterval;
-                }
+        SporeDamageHelper sporeHelper;
 
-                gameObject.GetComponent<DamageEffectTicker>().damageInterval = sporeDamage * 0.1f; // 0.9
+        /// <summary>
+        /// Resets the SporeDamageHelper
+        /// </summary>
+        private void ResetSporeHelper()
+        {
+            if (sporeHelper != null)
+            {
+                sporeHelper.Stop();
             }
 
-            return gameObject;
+            sporeHelper = new SporeDamageHelper(WanderersWisdom.Instance.Name, GetItemChangerId(), GetSporeModifier());
         }
+
+        /// <summary>
+        /// Gets the damage modifier for Spore Shroom
+        /// </summary>
+        /// <returns></returns>
+        private float GetSporeModifier()
+        {
+            float modifier = 1f;
+
+            // Per above, 5 notches is worth 1 notch of value
+            // Spore Shroom is worth 1 notch, so we can increase its damage by 1 / 5 = 20%
+            if (PlayerData.instance.GetBool("equippedCharm_17"))
+            {
+                modifier += 0.2f;
+            }
+
+            return modifier;
+        }
+
+        /// <summary>
+        /// Tracks whether Isma's Clodu has been triggered
+        /// </summary>
+        private bool ismasCloudActive = false;
 
         /// <summary>
         /// Isma's Tear causes the player to emit a green damaging cloud while healing with Shape of Unn
@@ -240,8 +304,7 @@ namespace WanderersWisdom.Charms
         /// <param name="self"></param>
         private void IsmasCloud(On.HeroController.orig_Update orig, HeroController self)
         {
-            if (IsEquipped() &&
-                PlayerData.instance.equippedCharm_28 &&
+            if (PlayerData.instance.GetBool("equippedCharm_28") &&
                 self.cState.focusing && 
                 !ismasCloudActive)
             {
@@ -263,10 +326,9 @@ namespace WanderersWisdom.Charms
             {
                 if (pool.prefab.name == "Knight Dung Trail")
                 {
-                    GameObject dungPrefab = pool.prefab;
-
                     // Create a duplicate of the dung cloud
-                    GameObject ismaCloud = Instantiate(dungPrefab, HeroController.instance.transform.position, Quaternion.identity);
+                    GameObject ismaCloud = UnityEngine.GameObject.Instantiate(pool.prefab, HeroController.instance.transform.position, Quaternion.identity);
+                    ismaCloud.name = "WanderersWisdom.IsmaCloud";
 
                     // Make it green so it looks like acid fumes instead of...you know...
                     foreach (ParticleSystem cloudPt in ismaCloud.GetComponentsInChildren<ParticleSystem>(true))
@@ -275,7 +337,24 @@ namespace WanderersWisdom.Charms
                         cloudMain.startColor = new Color(0.47f, 1f, 0.66f, 0.5f);
                     }
 
-                    yield return new WaitForSeconds(0.25f);
+                    // Per above, we want 1 notch of utility per 5 notches used
+                    // SOU costs 2 notches, so its worth 2/5 of a notch
+                    float notchValue = 2f / 5f;
+
+                    // However, we only produce the clouds while SOU is active
+                    // Per my Utils, an ability is 5x as valuable when it only happens during SOU
+                    notchValue /= NotchCosts.UnnModifier();
+
+                    // In total, this means we should produce 2 notches worth of clouds
+                    // However, the clouds are inconvenient due to their size, so we will spend 1 notch increasing their size
+                    // Based on other mods I've done, 1 notch is worth a 50% size increase in Dung Clouds
+                    notchValue -= 1;
+                    ismaCloud.transform.localScale *= 1.5f;
+
+                    // Defender's Crest produces these clouds ever 0.75 seconds for 1 notch, so we can spend the remaining notch
+                    // keeping the cooldown the same
+                    float cooldown = 0.75f / notchValue;
+                    yield return new WaitForSeconds(cooldown);
                     break;
                 }
             }
@@ -283,6 +362,7 @@ namespace WanderersWisdom.Charms
             ismasCloudActive = false;
             yield return new WaitForSeconds(0f);
         }
+        #endregion
         #endregion
     }
 }

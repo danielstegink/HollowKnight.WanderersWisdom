@@ -10,20 +10,20 @@ namespace WanderersWisdom
     {
         public Dictionary<string, bool> charmFound = new Dictionary<string, bool>()
         {
-            { new WWCharm().InternalName(), false },
-            { new WGCharm().InternalName(), false },
+            { "WanderersWisdom", false },
+            { "WanderersGuile", false },
         };
 
         public Dictionary<string, bool> charmEquipped = new Dictionary<string, bool>()
         {
-            { new WWCharm().InternalName(), false },
-            { new WGCharm().InternalName(), false },
+            { "WanderersWisdom", false },
+            { "WanderersGuile", false },
         };
 
         public Dictionary<string, int> charmCost = new Dictionary<string, int>()
         {
-            { new WWCharm().InternalName(), 1 },
-            { new WGCharm().InternalName(), 4 },
+            { "WanderersWisdom", 1 },
+            { "WanderersGuile", 4 },
         };
 
         public bool charmsPlaced = false;

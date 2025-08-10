@@ -9,38 +9,13 @@ namespace WanderersWisdom
     /// </summary>
     public static class SharedData
     {
-        private static WanderersWisdom _logger = new WanderersWisdom();
+        public static WGCharm wgCharm;
+
+        public static WWCharm wwCharm;
 
         /// <summary>
-        /// Logs message to the shared mod log at AppData\LocalLow\Team Cherry\Hollow Knight\ModLog.txt
+        /// Data for the save file
         /// </summary>
-        /// <param name="message"></param>
-        public static void Log(string message)
-        {
-            _logger.Log(message);
-        }
-
-        /// <summary>
-        /// List of the object names of the regular nail attacks
-        /// </summary>
-        public static List<string> nailAttackNames = new List<string>()
-        {
-            "Slash",
-            "AltSlash",
-            "UpSlash",
-            "DownSlash",
-        };
-
-        /// <summary>
-        /// List of the object names of the Nail Art attacks
-        /// </summary>
-        public static List<string> nailArtNames = new List<string>()
-        {
-            "Cyclone Slash",
-            "Great Slash",
-            "Dash Slash",
-            "Hit L",
-            "Hit R"
-        };
+        public static LocalSaveData localSaveData { get; set; } = new LocalSaveData();
     }
 }
