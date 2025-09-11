@@ -2,11 +2,11 @@
 
 This mod adds 2 new charms to the game: 
 1. Wanderer's Wisdom, which adds synergies linking your charms and your abilities
-- Longnail and Mark of Pride increase nail damage if you have Mantis Claw
-- Quick Focus and Deep Focus increase damage dealt by Crystal Heart
-- Gathering Swarm and Sprintmaster increase airborne movement speed if you have Monarch Wings
-- Spore Shroom deals more damage if you have Isma's Tear
-- Shape of Unn produces acidic clouds while focusing if you have Isma's Tear
+	- Longnail and Mark of Pride increase nail damage if you have Mantis Claw
+	- Quick Focus and Deep Focus increase damage dealt by Crystal Heart
+	- Gathering Swarm and Sprintmaster increase airborne movement speed if you have Monarch Wings
+	- Spore Shroom deals more damage if you have Isma's Tear
+	- Shape of Unn produces acidic clouds while focusing if you have Isma's Tear
 2. Wanderer's Guile, which gives you the ability to temporarily survive damage from environmental hazards
 
 Both charms can be acquired from Iselda's Shop after acquiring all of Cornifer's maps, or by using the "Give All Charms" option in DebugMod.
