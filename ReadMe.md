@@ -12,6 +12,9 @@ This mod adds 2 new charms to the game:
 Both charms can be acquired from Iselda's Shop after acquiring all of Cornifer's maps, or by using the "Give All Charms" option in DebugMod.
 
 # Patch Notes
+1.1.1.0
+- When starting a Godseeker game, both charms will be given automatically
+
 1.1.0.0
 -	Integrated with DanielSteginkUtils
 -	Rebalanced Wanderer's Wisdom so that each synergy gets the equivalent of 1 notch of utility per 5 notches worth of charms used

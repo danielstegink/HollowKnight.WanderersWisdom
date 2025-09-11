@@ -16,7 +16,7 @@ namespace WanderersWisdom
     {
         public static WanderersWisdom Instance;
 
-        public override string GetVersion() => "1.1.0.0";
+        public override string GetVersion() => "1.1.1.0";
 
         #region Save Settings
         public void OnLoadLocal(LocalSaveData s)
@@ -64,9 +64,28 @@ namespace WanderersWisdom
             SharedData.wgCharm = new WGCharm();
             SharedData.wwCharm = new WWCharm();
 
+            On.GameManager.StartNewGame += NewGame;
             UnityEngine.SceneManagement.SceneManager.activeSceneChanged += AddToShop;
 
             Log("Initialized");
+        }
+
+        /// <summary>
+        /// If starting a Godseeker game, give the charm
+        /// </summary>
+        /// <param name="orig"></param>
+        /// <param name="self"></param>
+        /// <param name="permadeathMode"></param>
+        /// <param name="bossRushMode"></param>
+        private void NewGame(On.GameManager.orig_StartNewGame orig, GameManager self, bool permadeathMode, bool bossRushMode)
+        {
+            orig(self, permadeathMode, bossRushMode);
+
+            if (bossRushMode)
+            {
+                SharedData.wgCharm.GiveCharm();
+                SharedData.wwCharm.GiveCharm();
+            }
         }
 
         /// <summary>
