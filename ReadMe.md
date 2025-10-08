@@ -11,7 +11,12 @@ This mod adds 2 new charms to the game:
 
 Both charms can be acquired from Iselda's Shop after acquiring all of Cornifer's maps, or by using the "Give All Charms" option in DebugMod.
 
+WARNING - This mod uses ItemChanger, and therefore requires a new Save in order to take effect.
+
 # Patch Notes
+1.1.2.0
+- Fixed broken ItemChanger code
+
 1.1.1.0
 - When starting a Godseeker game, both charms will be given automatically
 

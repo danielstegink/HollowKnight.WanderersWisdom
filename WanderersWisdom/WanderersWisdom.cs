@@ -1,6 +1,9 @@
-﻿using ItemChanger;
+﻿using DanielSteginkUtils.Helpers.Charms.Templates;
+using ItemChanger;
 using ItemChanger.Locations;
 using ItemChanger.Placements;
+using ItemChanger.Tags;
+using ItemChanger.UIDefs;
 using Modding;
 using MonoMod.RuntimeDetour;
 using System;
@@ -16,7 +19,7 @@ namespace WanderersWisdom
     {
         public static WanderersWisdom Instance;
 
-        public override string GetVersion() => "1.1.1.0";
+        public override string GetVersion() => "1.1.2.0";
 
         #region Save Settings
         public void OnLoadLocal(LocalSaveData s)
@@ -64,10 +67,46 @@ namespace WanderersWisdom
             SharedData.wgCharm = new WGCharm();
             SharedData.wwCharm = new WWCharm();
 
+            AddCharmToItemChanger(SharedData.wgCharm);
+            AddCharmToItemChanger(SharedData.wwCharm);
+
             On.GameManager.StartNewGame += NewGame;
             UnityEngine.SceneManagement.SceneManager.activeSceneChanged += AddToShop;
 
             Log("Initialized");
+        }
+
+        /// <summary>
+        /// Adds charm to Item Changer for easy reference
+        /// </summary>
+        /// <param name="charm"></param>
+        private void AddCharmToItemChanger(TemplateCharm charm)
+        {
+            try
+            {
+                var charmItem = new ItemChanger.Items.CharmItem()
+                {
+                    charmNum = charm.Id,
+                    name = charm.GetItemChangerId(),
+                    UIDef = new MsgUIDef()
+                    {
+                        name = new LanguageString("UI", $"CHARM_NAME_{charm.Id}"),
+                        shopDesc = new LanguageString("UI", $"CHARM_DESC_{charm.Id}"),
+                        sprite = new BoxedSprite(charm.GetSprite())
+                    }
+                };
+
+                var mapModTag = charmItem.AddTag<InteropTag>();
+                mapModTag.Message = "RandoSupplementalMetadata";
+                mapModTag.Properties["ModSource"] = GetName();
+                mapModTag.Properties["PoolGroup"] = "Charms";
+
+                Finder.DefineCustomItem(charmItem);
+            }
+            catch (Exception e)
+            {
+                Log($"Error adding {charm.GetItemChangerId()} to ItemChanger: {e.Message}\n{e.StackTrace}");
+            }
         }
 
         /// <summary>
@@ -96,40 +135,67 @@ namespace WanderersWisdom
         /// <exception cref="NotImplementedException"></exception>
         private void AddToShop(Scene arg0, Scene arg1)
         {
-            if (PlayerData.instance.GetBool("corniferAtHome"))
+            if (!PlayerData.instance.GetBool("corniferAtHome"))
             {
-                // Finder stores all locations in its local files, including Iselda's Shop
-                ShopLocation iseldaShop = (ShopLocation)Finder.GetLocation("Iselda");
-                ShopPlacement shopPlacement = (ShopPlacement)iseldaShop.Wrap();
+                //Log("Cornifer not at home.");
+                return;
+            }
 
-                // Make sure to specify default items so we don't break Iselda's store
-                shopPlacement.defaultShopItems = DefaultShopItems.IseldaMaps |
-                                                    DefaultShopItems.IseldaCharms | 
-                                                    DefaultShopItems.IseldaMapMarkers | 
-                                                    DefaultShopItems.IseldaMapPins |
-                                                    DefaultShopItems.IseldaMaps |
-                                                    DefaultShopItems.IseldaQuill;
+            ItemChangerMod.CreateSettingsProfile(false, false);
 
-                if (!SharedData.wwCharm.GotCharm)
+            // Finder stores all locations in its local files, including Iselda's Shop
+            ShopLocation iseldaShop = (ShopLocation)Finder.GetLocation("Iselda");
+            ShopPlacement shopPlacement = (ShopPlacement)iseldaShop.Wrap();
+            if (shopPlacement == null)
+            {
+                Log($"Error defining Iselda's shop as a placement.");
+            }
+
+            // Make sure to specify default items so we don't break Iselda's store
+            shopPlacement.defaultShopItems = DefaultShopItems.IseldaMaps |
+                                                DefaultShopItems.IseldaCharms |
+                                                DefaultShopItems.IseldaMapMarkers |
+                                                DefaultShopItems.IseldaMapPins |
+                                                DefaultShopItems.IseldaMaps |
+                                                DefaultShopItems.IseldaQuill;
+
+            if (!SharedData.wwCharm.GotCharm)
+            {
+                // Get charm as an item from Finder
+                AbstractItem charmItem = Finder.GetItem(SharedData.wwCharm.GetItemChangerId());
+                if (charmItem == null)
                 {
-                    // Get charm as an item from Finder
-                    AbstractItem charmItem = Finder.GetItem(SharedData.wwCharm.GetItemChangerId());
-
-                    // Add item to shop
-                    shopPlacement.AddItemWithCost(charmItem, SharedData.wwCharm.geoCost);
+                    Log($"Error getting WW from Item Changer.");
                 }
 
-                if (!SharedData.wgCharm.GotCharm)
-                {
-                    // Get charm as an item from Finder
-                    AbstractItem charmItem = Finder.GetItem(SharedData.wgCharm.GetItemChangerId());
+                // Add item to shop
+                shopPlacement.AddItemWithCost(charmItem, SharedData.wwCharm.geoCost);
+                //Log("WW added to placement");
+            }
 
-                    // Add item to shop
-                    shopPlacement.AddItemWithCost(charmItem, SharedData.wgCharm.geoCost);
+            if (!SharedData.wgCharm.GotCharm)
+            {
+                // Get charm as an item from Finder
+                AbstractItem charmItem = Finder.GetItem(SharedData.wgCharm.GetItemChangerId());
+                if (charmItem == null)
+                {
+                    Log($"Error getting WG from Item Changer.");
                 }
 
-                // Add placement back to ItemChanger
+                // Add item to shop
+                shopPlacement.AddItemWithCost(charmItem, SharedData.wgCharm.geoCost);
+                //Log("WG added to placement");
+            }
+
+            // Add placement back to ItemChanger
+            try
+            {
                 ItemChangerMod.AddPlacements(new List<AbstractPlacement> { shopPlacement }, PlacementConflictResolution.Replace);
+                //Log($"Charms added to shop");
+            }
+            catch (Exception e)
+            {
+                Log($"Error adding placement: {e.Message}\n{e.StackTrace}");
             }
         }
 
