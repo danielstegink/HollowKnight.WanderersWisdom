@@ -14,6 +14,9 @@ Both charms can be acquired from Iselda's Shop after acquiring all of Cornifer's
 WARNING - This mod uses ItemChanger, and therefore requires a new Save in order to take effect.
 
 # Patch Notes
+1.1.3.0
+- Fixed bug so Wanderer's Guile only negates environmental damage
+
 1.1.2.0
 - Fixed broken ItemChanger code
 

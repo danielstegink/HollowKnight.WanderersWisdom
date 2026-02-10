@@ -19,7 +19,7 @@ namespace WanderersWisdom
     {
         public static WanderersWisdom Instance;
 
-        public override string GetVersion() => "1.1.2.0";
+        public override string GetVersion() => "1.1.3.0";
 
         #region Save Settings
         public void OnLoadLocal(LocalSaveData s)

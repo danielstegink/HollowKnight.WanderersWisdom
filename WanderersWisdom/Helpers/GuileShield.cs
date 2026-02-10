@@ -12,6 +12,18 @@ namespace WanderersWisdom.Helpers
         /// </summary>
         public bool overloaded = false;
 
+        /// <summary>
+        /// WG only triggers on environmental damage
+        /// </summary>
+        /// <param name="damageAmount"></param>
+        /// <param name="hazardType"></param>
+        /// <returns></returns>
+        public override bool CanTakeDamage(int damageAmount, int hazardType)
+        {
+            return base.CanTakeDamage(damageAmount, hazardType) &&
+                    hazardType != 1;
+        }
+
         public override bool CustomShieldCheck()
         {
             return !overloaded;
